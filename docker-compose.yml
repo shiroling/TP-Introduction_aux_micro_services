@@ -1,0 +1,84 @@
+version: "3.5"
+volumes:
+  mongodb_data:
+networks:
+  app_network:
+    name:
+      app_network
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.5.0
+    container_name: zookeeper
+    ports:
+      - 22181:2181
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - app_network
+  broker:
+    image: confluentinc/cp-kafka:5.5.0
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - 19092:19092
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS:
+        PLAINTEXT://broker:9092,CONNECTIONS_FROM_HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:
+        PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app_network
+
+  database:
+    image: mongo:4.0
+    container_name: database
+    restart: always
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - "mongodb_data:/data/db"
+    command: "mongod --smallfiles --logpath=/dev/null"
+    networks:
+      - app_network
+
+  api_entite_micro_service:
+    build:
+      context: ./api_entite_micro_service
+    ports:
+      - 5000:5000
+    container_name: api_entite_micro_service
+    restart: always
+    networks:
+      - app_network
+    depends_on:
+      - broker
+  worker_entite_micro_service:
+    build:
+      context: ./worker_entite_micro_service
+    ports:
+      - 5001:5001
+    container_name: worker_entite_micro_service
+    restart: always
+    networks:
+      - app_network
+    depends_on:
+      - database
+      - broker
+  client_entite_micro_service:
+    build:
+      context: ./client_entite_micro_service
+    ports:
+      - 8501:8501
+    container_name: client_entite_micro_service
+    restart: always
+    networks:
+      - app_network
+    depends_on:
+      - api_entite_micro_service
