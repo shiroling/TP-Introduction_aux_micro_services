@@ -6,7 +6,7 @@ st.title("Application d'ajout des entités")
 
 #st.texts('Id : ')
 id = st.number_input('id', step=1)
-Libellé_entité = st.text_input('libellé_entité') 
+libellé_entité = st.text_input('libellé_entité') 
 contenu_entité = st.text_input('contenu_entité')
 
 if st.button('Ajouter'):
